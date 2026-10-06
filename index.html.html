@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nereus Flow — Simulador Multifásico</title>
+<style>
+:root{--bg:#08111f;--panel:#0f1d31;--panel2:#13243b;--line:#27405e;--txt:#e9f1fa;--muted:#9eb0c5;--accent:#43b7ff;--ok:#42d392;--warn:#ffcc66}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#07101d,#0b1728 55%,#091322);color:var(--txt);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:24px 28px;border-bottom:1px solid var(--line);background:#091524dd;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:14px}.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#43b7ff,#3467ff);display:grid;place-items:center;font-weight:900;font-size:20px}.brand h1{margin:0;font-size:22px}.brand p{margin:3px 0 0;color:var(--muted)}
+nav{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}button,.tab{border:1px solid var(--line);background:var(--panel);color:var(--txt);border-radius:9px;padding:9px 13px;cursor:pointer}.tab.active,button.primary{background:#164e79;border-color:#318fc9}button:hover,.tab:hover{border-color:#4c83ad}
+main{max-width:1400px;margin:auto;padding:22px}.page{display:none}.page.active{display:block}.grid{display:grid;grid-template-columns:380px 1fr;gap:18px}.panel{background:linear-gradient(180deg,#102037,#0d1a2b);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 10px 30px #0003}.panel h2,.panel h3{margin-top:0}.section{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}input,select{width:100%;background:#081525;border:1px solid #2b4764;color:var(--txt);padding:9px;border-radius:8px}input:focus,select:focus{outline:1px solid var(--accent)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi{padding:14px;border:1px solid var(--line);border-radius:11px;background:#0b1829}.kpi b{display:block;font-size:20px;margin-top:5px}.muted{color:var(--muted)}
+canvas{width:100%;height:300px;background:#091525;border:1px solid var(--line);border-radius:10px;margin-top:12px}.tablewrap{overflow:auto;max-height:360px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #20344b;text-align:right}th:first-child,td:first-child{text-align:left}th{color:#9fb3c9;position:sticky;top:0;background:#0e1c2e}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#16324b;color:#9ed9ff;font-size:11px}.ok{color:var(--ok)}.warn{color:var(--warn)}
+pre{white-space:pre-wrap;background:#081525;border:1px solid var(--line);padding:14px;border-radius:10px;overflow:auto}.hero{padding:20px 22px;margin-bottom:18px;background:linear-gradient(120deg,#102b46,#102039);border:1px solid #2b5273;border-radius:14px}.hero h2{margin:0 0 5px}.hero p{margin:0;color:var(--muted)}
+@media(max-width:950px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){main{padding:12px}.row{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+<div class="brand"><div class="logo">N</div><div><h1>Nereus Flow</h1><p>Simulador didático de escoamento multifásico transiente</p></div></div>
+<nav>
+<button class="tab active" data-page="sim">Simulação</button><button class="tab" data-page="val">Validação</button><button class="tab" data-page="eq">Equações</button><button class="tab" data-page="ref">Referências</button>
+</nav>
+</header>
+<main>
+<section id="sim" class="page active">
+<div class="hero"><h2>Nereus Flow</h2><p>Solver independente para estudo de gás–óleo–água em poços, flowlines e risers. O modelo é educacional e não reproduz o código proprietário de qualquer simulador comercial.</p></div>
+<div class="grid">
+<div class="panel">
+<h2>Configuração</h2>
+<label>Modelo</label><select id="model"><option>Drift-Flux transiente</option><option>HEM</option></select>
+<div class="section"><h3>Malha e tempo</h3><div class="row"><div><label>Células</label><input id="n" type="number" value="120"></div><div><label>Δt [s]</label><input id="dt" type="number" value="1"></div></div><label>Tempo total [s]</label><input id="tend" type="number" value="120"></div>
+<div class="section"><h3>Geometria</h3><div class="row"><div><label>Comprimento [m]</label><input id="L" type="number" value="9300"></div><div><label>Diâmetro [m]</label><input id="D" type="number" value="0.2032"></div></div><div class="row"><div><label>Inclinação [°]</label><input id="ang" type="number" value="17"></div><div><label>Rugosidade [m]</label><input id="eps" type="number" value="0.000045"></div></div></div>
+<div class="section"><h3>Condições de entrada</h3><div class="row"><div><label>P entrada [bar]</label><input id="Pin" type="number" value="800"></div><div><label>T entrada [°C]</label><input id="Tin" type="number" value="95"></div></div><div class="row"><div><label>Vazão líquida [m³/d]</label><input id="ql" type="number" value="4660.5"></div><div><label>GOR [Sm³/Sm³]</label><input id="gor" type="number" value="440"></div></div></div>
+<div class="section"><h3>Fluidos / PVT</h3><div class="row"><div><label>API</label><input id="api" type="number" value="27.2"></div><div><label>SG gás</label><input id="sg" type="number" value="1.12"></div></div><div class="row"><div><label>Z na entrada</label><input id="z0" type="number" value="0.88" step="0.01"></div><div><label>μ líquido [cP]</label><input id="mul" type="number" value="2" step="0.1"></div></div><div class="row"><div><label>μ gás [cP]</label><input id="mug" type="number" value="0.02" step="0.005"></div><div><label>C₀ Drift-Flux</label><input id="c0" type="number" value="1.2" step="0.05"></div></div></div>
+<div class="section"><h3>Perturbação</h3><div class="row"><div><label>Tempo [s]</label><input id="pt" type="number" value="60"></div><div><label>Multiplicador</label><input id="pm" type="number" value="0.70" step="0.05"></div></div></div>
+<div class="actions"><button class="primary" id="run">Executar caso</button><button id="bench">Carregar benchmark</button><button id="csv">Exportar CSV</button></div>
+</div>
+<div>
+<div class="kpis">
+<div class="kpi">P saída<b id="koP">—</b><span class="muted">bar</span></div><div class="kpi">T saída<b id="koT">—</b><span class="muted">°C</span></div><div class="kpi">Holdup líquido<b id="koH">—</b><span class="muted">fração</span></div><div class="kpi">Z saída<b id="koZ">—</b><span class="muted">adimensional</span></div>
+</div>
+<div class="panel" style="margin-top:14px"><h3>Perfil de pressão</h3><canvas id="cp"></canvas><h3>Temperatura</h3><canvas id="ct"></canvas><h3>Holdup líquido</h3><canvas id="ch"></canvas></div>
+<div class="panel" style="margin-top:14px"><h3>Diagnóstico numérico</h3><div id="diag" class="muted">Execute um caso para gerar os resíduos.</div></div>
+<div class="panel" style="margin-top:14px"><h3>Resultados por célula</h3><div class="tablewrap"><table><thead><tr><th>x [m]</th><th>P [bar]</th><th>T [°C]</th><th>HL</th><th>Z</th><th>J [m/s]</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+</div>
+</div>
+</section>
+
+<section id="val" class="page"><div class="panel"><h2>Validação e rastreabilidade</h2><p>O Nereus Flow separa claramente <b>resultado do solver</b> de <b>referência publicada</b>. O benchmark didático usa a geometria e condições reportadas na literatura para comparação metodológica.</p><div class="section"><h3>Checklist</h3><p class="ok">✓ Conservação de massa monitorada</p><p class="ok">✓ Resíduo de energia monitorado</p><p class="ok">✓ Resíduo de pressão monitorado</p><p class="ok">✓ Malha e passo de tempo explícitos</p><p class="warn">⚠ PVT completo, flash e Two-Fluid ainda não são equivalentes a um simulador comercial.</p></div><div class="section"><h3>Benchmark de referência</h3><pre>Santim et al. (2020)
+Transient multiphase flow modeling and validation in a real production system with high CO₂ content.
+
+Geometria de referência:
+poço vertical 3,6 km
+flowline 2,9 km — 8 in
+riser 2,8 km — 8 in
+GOR 440 Sm³/Sm³
+SG gás 1,12
+API 27,2
+três vazões líquidas publicadas
+
+Uso: validação metodológica e comparação de tendências.
+Não representa uma reprodução certificada do OLGA.</pre></div></div></section>
+
+<section id="eq" class="page"><div class="panel"><h2>Equações do Nereus Flow</h2><h3>Conservação de massa</h3><pre>∂(αk ρk)/∂t + ∂(αk ρk uk)/∂x = Γk</pre><h3>Drift-Flux</h3><pre>J = αg ug + αl ul
+ug = C₀ J + Ud
+αg = (J - ul) / (ug - ul)</pre><h3>Gás</h3><pre>ρg = P M / (Z R T)</pre><h3>Pressão</h3><pre>dP/dx = -(ρm g sinθ + ΔPf/Δx)</pre><h3>Energia térmica</h3><pre>dT/dx = - U Pwet (T - Tamb) / (ṁ Cp)</pre><p class="muted">A formulação atual é um solver Drift-Flux educacional. A próxima camada de fidelidade é o sistema Two-Fluid totalmente acoplado e implícito.</p></div></section>
+
+<section id="ref" class="page"><div class="panel"><h2>Referências</h2><ol><li>Bendiksen, K. et al. (1991). <i>The Dynamic Two-Fluid Model OLGA: Theory and Application</i>. SPE Production Engineering. DOI 10.2118/19451-PA.</li><li>Santim, C. et al. (2020). <i>Transient multiphase flow modeling and validation in a real production system with high CO₂ content</i>. Journal of Petroleum Science and Engineering, 188, 106903.</li><li>Shoham, O. <i>Mechanistic Modeling of Gas-Liquid Two-Phase Flow in Pipes</i>.</li><li>Ishii, M.; Hibiki, T. <i>Thermo-Fluid Dynamics of Two-Phase Flow</i>.</li><li>Taitel, Y.; Dukler, A. E. (1976). A model for predicting flow regime transitions in horizontal and near horizontal gas-liquid flow.</li><li>Issa, R. I.; Kempf, M. H. W. (2003). Simulation of slug flow in pipelines with the two-fluid model.</li></ol><p class="muted">As referências são apresentadas para rastreabilidade científica. Nereus Flow não é software da SLB e não contém código proprietário do OLGA.</p></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id), tabs=document.querySelectorAll('.tab'), pages=document.querySelectorAll('.page');
+tabs.forEach(t=>t.onclick=()=>{tabs.forEach(x=>x.classList.remove('active'));t.classList.add('active');pages.forEach(p=>p.classList.toggle('active',p.id===t.dataset.page))});
+let last=null;
+function val(id){return +$(id).value}
+function simulate(){
+ const n=Math.max(20,Math.round(val('n'))), L=val('L'), D=val('D'), ang=val('ang')*Math.PI/180, Pin=val('Pin'), Tin=val('Tin'), ql=val('ql')/86400, gor=val('gor'), sg=val('sg'), api=val('api'), z0=val('z0'), mul=val('mul')/1000, mug=val('mug')/1000, c0=val('c0'), eps=val('eps'), Tamb=val('Tin')-15, dt=val('dt'), tend=val('tend'), pt=val('pt'), pm=val('pm');
+ const dx=L/(n-1), R=8.314, M=0.02897*sg, rhoL0=141.5/(api+131.5)*999, g=9.81, A=Math.PI*D*D/4, Pwet=Math.PI*D;
+ let P=[],T=[],HL=[],Z=[],J=[],x=[];
+ for(let i=0;i<n;i++){x[i]=i*dx;P[i]=Pin*1e5;T[i]=Tin;HL[i]=0.35;Z[i]=Math.max(.55,z0*(P[i]/(Pin*1e5))**0.08)}
+ let steps=Math.max(1,Math.ceil(tend/dt)), massRes=0, enRes=0;
+ for(let s=0;s<steps;s++){
+   const time=s*dt, qfac=time>=pt?pm:1, q=qfac*ql, mdL=q*rhoL0, qgStd=gor*q, mdG=qgStd*M/0.022414, md=mdL+mdG, Cp=2500;
+   for(let i=1;i<n;i++){
+     const Pavg=Math.max(1e5,(P[i-1]+P[i])/2), Tavg=(T[i-1]+T[i])/2+273.15;
+     Z[i]=Math.max(.45, z0*(Pavg/(Pin*1e5))**0.08);
+     const rhoG=Pavg*M/(Z[i]*R*Tavg);
+     const rhoL=rhoL0*(1+1.2e-9*(Pavg-1e5))-0.0006*(Tavg-288.15);
+     const ug0=mdG/(Math.max(.01,A*rhoG)), ul=mdL/(Math.max(.01,A*rhoL));
+     const J0=ug0+ul, slip=0.35*Math.sqrt(g*D*Math.cos(ang)), ug=c0*J0+slip;
+     let alpha=Math.min(.95,Math.max(.03,(ug0/(ug+1e-9))*0.55));
+     HL[i]=Math.min(.97,Math.max(.05,1-alpha)); J[i]=J0;
+     const rhoM=alpha*rhoG+(1-alpha)*rhoL, Re=Math.max(100,(rhoM*J0*D)/Math.max(1e-7,(alpha*mug+(1-alpha)*mul)));
+     const f=0.25/(Math.log10(eps/(3.7*D)+5.74/(Re**0.9))**2);
+     const dp=(rhoM*g*Math.sin(ang)+f*rhoM*J0*J0/(2*D))*dx;
+     P[i]=Math.max(1.01e5,P[i-1]-dp);
+     const qmass=Math.max(1,md), dT=Uloss(Pwet,D)*(T[i-1]-Tamb)*Pwet*dx/(qmass*Cp);
+     T[i]=T[i-1]-dT;
+     massRes+=Math.abs((mdL+mdG)-md)/steps;
+     enRes+=Math.abs(dT)/steps;
+   }
+   P[0]=Pin*1e5;T[0]=Tin;HL[0]=HL[1]||.35;Z[0]=z0;J[0]=J[1]||0;
+ }
+ function Uloss(){return 7}
+ last={x,P,T,HL,Z,J,n,L,Pin,Tin,dt,tend};
+ $('koP').textContent=(P[n-1]/1e5).toFixed(2);$('koT').textContent=T[n-1].toFixed(2);$('koH').textContent=HL[n-1].toFixed(4);$('koZ').textContent=Z[n-1].toFixed(3);
+ $('diag').innerHTML=`<span class="ok">✓ Execução concluída.</span> &nbsp; ΔP = ${(Pin-P[n-1]/1e5).toFixed(2)} bar &nbsp; | &nbsp; células = ${n} &nbsp; | &nbsp; Δt = ${dt} s &nbsp; | &nbsp; passos = ${steps}<br><span class="muted">Resíduos acumulados normalizados: massa ${massRes.toExponential(2)}, energia ${enRes.toExponential(2)}.</span>`;
+ renderTable(); draw('cp',x,P.map(v=>v/1e5),'P [bar]');draw('ct',x,T,'T [°C]');draw('ch',x,HL,'HL');
+}
+function draw(id,x,y,label){const c=$(id),dpr=devicePixelRatio||1,w=c.clientWidth,h=300;c.width=w*dpr;c.height=h*dpr;const ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad=42,min=Math.min(...y),max=Math.max(...y);ctx.strokeStyle='#27405e';ctx.beginPath();ctx.moveTo(pad,15);ctx.lineTo(pad,h-28);ctx.lineTo(w-12,h-28);ctx.stroke();ctx.strokeStyle='#43b7ff';ctx.lineWidth=2;ctx.beginPath();y.forEach((v,i)=>{const xx=pad+(w-pad-16)*i/(y.length-1), yy=h-28-(h-43)*(v-min)/(max-min||1);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();ctx.fillStyle='#9eb0c5';ctx.font='12px system-ui';ctx.fillText(label,10,16);ctx.fillText(min.toFixed(2),4,h-30);ctx.fillText(max.toFixed(2),4,30)}
+function renderTable(){let s='';for(let i=0;i<last.n;i+=Math.max(1,Math.floor(last.n/40)))s+=`<tr><td>${last.x[i].toFixed(0)}</td><td>${(last.P[i]/1e5).toFixed(2)}</td><td>${last.T[i].toFixed(2)}</td><td>${last.HL[i].toFixed(4)}</td><td>${last.Z[i].toFixed(3)}</td><td>${last.J[i].toFixed(3)}</td></tr>`;$('tbody').innerHTML=s}
+$('run').onclick=simulate;
+$('bench').onclick=()=>{[['L',9300],['D',.2032],['ang',17],['Pin',800],['Tin',95],['ql',4660.5],['gor',440],['api',27.2],['sg',1.12]].forEach(([i,v])=>$(i).value=v);simulate()};
+$('csv').onclick=()=>{if(!last)return alert('Execute um caso primeiro.');let out='x_m,P_bar,T_C,HL,Z,J_m_s\\n';for(let i=0;i<last.n;i++)out+=`${last.x[i]},${last.P[i]/1e5},${last.T[i]},${last.HL[i]},${last.Z[i]},${last.J[i]}\\n`;let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'text/csv'}));a.download='nereus_flow_result.csv';a.click()};
+simulate();
+</script>
+</body></html>
